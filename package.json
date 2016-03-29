@@ -1,0 +1,26 @@
+{
+  "name": "skerla-callbacks",
+  "version": "0.1.0",
+  "description": "callbacks with a timeout",
+  "main": "index.js",
+  "scripts": {
+    "test": "npm run test"
+  },
+  "keywords": [
+    "callback",
+    "timeout"
+  ],
+  "author": "Andrius Skerla",
+  "license": "ISC",
+  "dependencies": {
+    "debug": "^2.2.0",
+    "lodash": "^4.6.1",
+    "objectid": "^3.2.1",
+    "q": "^1.4.1"
+  },
+  "devDependencies": {
+    "chai": "^3.5.0",
+    "co-mocha": "^1.1.2",
+    "mocha": "^2.4.5"
+  }
+}
