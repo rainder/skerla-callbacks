@@ -10,6 +10,7 @@
     "callback",
     "timeout"
   ],
+  "repository": "rainder/skerla-callbacks",
   "author": "Andrius Skerla",
   "license": "ISC",
   "dependencies": {
