@@ -10,8 +10,8 @@ describe('all tests', function () {
     const callbacks = new Callbacks();
     const promise = callbacks.create('1');
 
-    callbacks._callbacks.size.should.equals(1);
-    callbacks.getDefer('1').resolve('data1');
+    callbacks.size.should.equals(1);
+    callbacks.getCallback('1').resolve('data1');
 
     const result = yield promise;
     result.should.equals('data1');
@@ -19,11 +19,9 @@ describe('all tests', function () {
 
   it('should timeout a callback', function *() {
     const callbacks = new Callbacks();
-    const promise = callbacks.create('2', {
-      timeout: 1
-    });
+    const promise = callbacks.create('2', 1);
 
-    callbacks._callbacks.size.should.equals(1);
+    callbacks.size.should.equals(1);
 
     try {
       yield promise;
@@ -32,17 +30,15 @@ describe('all tests', function () {
       e.message.should.match(/^callback timeout: default::2/);
     }
 
-    callbacks._callbacks.size.should.equals(0);
+    callbacks.size.should.equals(0);
   });
 
   it('should clear a callback', function *() {
     const callbacks = new Callbacks();
-    const promise = callbacks.create('3', {
-      timeout: 1
-    });
-    callbacks._callbacks.size.should.equals(1);
-    callbacks.getDefer('3').destroy();
-    callbacks._callbacks.size.should.equals(0);
+    const promise = callbacks.create('3', 1);
+    callbacks.size.should.equals(1);
+    callbacks.getCallback('3').destroy();
+    callbacks.size.should.equals(0);
 
     yield cb => setTimeout(cb, 10);
   });
@@ -50,22 +46,22 @@ describe('all tests', function () {
   it('should callback an error', function *() {
     const callbacks = new Callbacks();
     const promise = callbacks.create('5');
-    callbacks._callbacks.size.should.equals(1);
+    callbacks.size.should.equals(1);
 
-    callbacks.getDefer('5').reject('error');
+    callbacks.getCallback('5').reject('error');
     try {
       yield promise;
     } catch (e) {
       e.should.equals('error');
     }
 
-    callbacks._callbacks.size.should.equals(0);
+    callbacks.size.should.equals(0);
   });
 
   it('should not allow to create a callback with the same id', function *() {
     const c1 = new Callbacks();
     const promise = c1.create('1');
-    c1._callbacks.size.should.equals(1);
+    c1.getCallbacks().size.should.equals(1);
 
     try {
       c1.create('1');
@@ -74,9 +70,9 @@ describe('all tests', function () {
       e.message.should.match(/already defined/);
     }
 
-    c1._callbacks.size.should.equals(1);
-    c1.getDefer('1').resolve('data');
-    c1._callbacks.size.should.equals(0);
+    c1.getCallbacks().size.should.equals(1);
+    c1.getCallback('1').resolve('data');
+    c1.getCallbacks().size.should.equals(0);
 
     const result = yield promise;
 
