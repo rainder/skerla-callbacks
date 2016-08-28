@@ -1,136 +1,95 @@
 'use strict';
 
-const q = require('q');
-const _ = require('lodash');
-const debug = require('debug');
-const objectId = require('objectid');
-
-const storage = new Map();
-
 module.exports = class Callbacks {
-  constructor(namespace) {
-    namespace = String(namespace);
-    this.debug = debug(`skerla-callbacks:${namespace}`);
 
-    if (!storage.has(namespace)) {
-      storage.set(namespace, new Map());
-    }
-
-    this.scope = storage.get(namespace);
+  /**
+   *
+   * @param namespace {String}
+   */
+  constructor(namespace = 'default') {
+    this._namespace = namespace;
+    this._callbacks = new Map();
   }
 
   /**
    *
-   * @param namespace
+   * @param namespace {String}
    * @returns {Callbacks}
    */
-  static init(namespace) {
+  static create(namespace) {
     return new Callbacks(namespace);
   }
 
   /**
    *
+   * @param id
    * @param options
-   * @returns {d.promise|*|promise}
+   * @returns {Promise}
    */
-  create(options) {
-    options = _.defaults({}, options || {}, {
-      id: undefined,
-      timeout: 30000,
-      data: null,
-      name: 'not-specified'
-    });
+  create(id, options = {}) {
+    options.timeout = options.timeout || 30000;
 
-    const self = this;
-    const dfd = q.defer();
-    const id = options.id || objectId().toString();
-    const err = new Error(`Callback timeout: ${options.name}`);
-    const timeoutTimer = setTimeout(timeout, options.timeout);
+    console.assert(!!id, 'ID must be provided');
+    console.assert(typeof id === 'string', 'typeof ID must be string');
+    console.assert(typeof options.timeout === 'number', 'typeof `options.timeout` must be number');
+    console.assert(!this._callbacks.has(id), `ID ${id} is already defined`);
 
-    this.debug('creating', id);
+    /**
+     * cleanup function
+     */
+    const destroy = () => {
+      this._callbacks.delete(id);
+      timer._called || clearTimeout(timer);
+    };
 
-    if (this.scope.has(id)) {
-      throw new Error(`callback ${id} is already defined`);
-    }
+    /**
+     * timeout function
+     */
+    const timeout = () => {
+      dfd.reject(new Error(`callback timeout: ${this._namespace}::${id}`));
+    };
 
-    this.scope.set(id, {
-      data: options.data,
-      success, fail
-    });
+    const timer = setTimeout(timeout, options.timeout);
+    const dfd = defer(destroy);
 
-    dfd.promise.id = id;
-    dfd.promise.clear = clear;
+    this._callbacks.set(id, dfd);
 
     return dfd.promise;
-
-    /**
-     *
-     * @returns {*}
-     */
-    function success() {
-      clear();
-      return dfd.resolve.apply(dfd, arguments);
-    }
-
-    /**
-     *
-     * @returns {*}
-     */
-    function fail() {
-      clear();
-      return dfd.reject.apply(dfd, arguments);
-    }
-
-    /**
-     *
-     */
-    function clear() {
-      self.scope.delete(id);
-      clearTimeout(timeoutTimer);
-    }
-
-    /**
-     *
-     */
-    function timeout() {
-      fail(err);
-      self.debug('timeout', id);
-    }
   }
 
   /**
    *
    * @param id
-   * @param data
-   * @returns {boolean}
    */
-  success(id, data) {
-    const value = this.scope.get(id);
-    if (!value) {
-      this.debug('not found', id);
-      return false;
-    }
-    this.debug('executing', id);
-
-    value.success(data);
-    return true;
+  getDefer(id) {
+    return this._callbacks.get(id);
   }
-
-  /**
-   *
-   * @param id
-   * @param data
-   * @returns {boolean}
-   */
-  fail(id, err) {
-    const value = this.scope.get(id);
-    if (!value) {
-      this.debug('not found', id);
-      return false;
-    }
-    this.debug('executing failure', id);
-
-    value.fail(err);
-    return true;
-  };
 };
+
+/**
+ *
+ * @param destroy {Function}
+ * @returns {{destroy: Function, promise: Promise, resolve: Function, reject: Function}}
+ */
+function defer(destroy) {
+  const dfd = {
+    destroy,
+    promise: null,
+    resolve: null,
+    reject: null
+  };
+
+  dfd.promise = new Promise((resolve, reject) => {
+    dfd.resolve = (data) => {
+      destroy();
+      resolve(data);
+    };
+
+    dfd.reject = (err) => {
+      destroy();
+      reject(err);
+    };
+  });
+
+  return dfd;
+}

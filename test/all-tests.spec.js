@@ -7,96 +7,80 @@ chai.should();
 
 describe('all tests', function () {
   it('should execute a callback', function *() {
-    const callbacks = new Callbacks('one');
-    const promise = callbacks.create();
+    const callbacks = new Callbacks();
+    const promise = callbacks.create('1');
 
-    callbacks.scope.size.should.equals(1);
-    callbacks.success(promise.id, 'data1');
+    callbacks._callbacks.size.should.equals(1);
+    callbacks.getDefer('1').resolve('data1');
 
-    promise.isFulfilled().should.equals(true);
     const result = yield promise;
     result.should.equals('data1');
   });
 
   it('should timeout a callback', function *() {
     const callbacks = new Callbacks();
-    const promise = callbacks.create({
+    const promise = callbacks.create('2', {
       timeout: 1
     });
 
-    callbacks.scope.size.should.equals(1);
-    promise.isFulfilled().should.equals(false);
+    callbacks._callbacks.size.should.equals(1);
 
     try {
       yield promise;
     } catch (e) {
       (e instanceof Error).should.equals(true);
-      e.message.should.match(/^Callback timeout: /);
+      e.message.should.match(/^callback timeout: default::2/);
     }
+
+    callbacks._callbacks.size.should.equals(0);
   });
 
   it('should clear a callback', function *() {
     const callbacks = new Callbacks();
-    const promise = callbacks.create({
+    const promise = callbacks.create('3', {
       timeout: 1
     });
-    callbacks.scope.size.should.equals(1);
-    promise.clear();
-    callbacks.scope.size.should.equals(0);
+    callbacks._callbacks.size.should.equals(1);
+    callbacks.getDefer('3').destroy();
+    callbacks._callbacks.size.should.equals(0);
 
     yield cb => setTimeout(cb, 10);
-
-    promise.isFulfilled().should.equals(false);
   });
 
   it('should callback an error', function *() {
     const callbacks = new Callbacks();
-    const promise = callbacks.create();
-    callbacks.scope.size.should.equals(1);
+    const promise = callbacks.create('5');
+    callbacks._callbacks.size.should.equals(1);
 
-    promise.isFulfilled().should.equals(false);
-
-    callbacks.fail(promise.id, 'error');
+    callbacks.getDefer('5').reject('error');
     try {
       yield promise;
     } catch (e) {
       e.should.equals('error');
     }
 
-    callbacks.scope.size.should.equals(0);
-  });
-
-  it('should reuse a namespace', function *() {
-    const c1 = new Callbacks('one');
-    const c2 = new Callbacks('one');
-    const c3 = new Callbacks('two');
-
-    c1.create();
-
-    c1.scope.size.should.equals(1);
-    c2.scope.size.should.equals(1);
-    c3.scope.size.should.equals(0);
+    callbacks._callbacks.size.should.equals(0);
   });
 
   it('should not allow to create a callback with the same id', function *() {
     const c1 = new Callbacks();
-    const promise = c1.create({
-      id: '1'
-    });
+    const promise = c1.create('1');
+    c1._callbacks.size.should.equals(1);
 
     try {
-      c1.create({
-        id: '1'
-      });
+      c1.create('1');
     } catch (e) {
       (e instanceof Error).should.equals(true);
       e.message.should.match(/already defined/);
     }
 
-    c1.success('1', 'data');
+    c1._callbacks.size.should.equals(1);
+    c1.getDefer('1').resolve('data');
+    c1._callbacks.size.should.equals(0);
 
     const result = yield promise;
 
     result.should.equals('data');
   });
+
 });
