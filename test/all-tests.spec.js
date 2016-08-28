@@ -28,6 +28,8 @@ describe('all tests', function () {
     } catch (e) {
       (e instanceof Error).should.equals(true);
       e.message.should.match(/^callback timeout: default::2/);
+      e.namespace.should.equals('default');
+      e.id.should.equals('2');
     }
 
     callbacks.size.should.equals(0);
