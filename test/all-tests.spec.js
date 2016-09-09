@@ -19,7 +19,17 @@ describe('all tests', function () {
 
   it('should timeout a callback', function *() {
     const callbacks = new Callbacks();
-    const promise = callbacks.create('2', 1);
+    const promise = callbacks.create('2', {
+      timeout: 1,
+      error_constructor: class MyError extends Error {
+        constructor(message, namespace, id) {
+          super();
+          this.message = message;
+          this.id = id;
+          this.namespace = namespace;
+        }
+      }
+    });
 
     callbacks.size.should.equals(1);
 
