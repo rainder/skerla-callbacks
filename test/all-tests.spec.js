@@ -37,7 +37,7 @@ describe('all tests', function () {
       yield promise;
     } catch (e) {
       (e instanceof Error).should.equals(true);
-      e.message.should.match(/^callback timeout: default::2/);
+      e.message.should.match(/^callback timeout/);
       e.namespace.should.equals('default');
       e.id.should.equals('2');
     }
